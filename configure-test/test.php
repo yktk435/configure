@@ -1,50 +1,70 @@
 <?php
 
-$arr = [1, 2, 3, 4, 5];
-$newArr=[];
-// $newArr = [1 => [2 => [3 => [4 => 5]]]];
+$str = 'service timestamps debug datetime msec localtime show-timezone';
+$arr = explode(' ', $str);
+$newArr = [];
 $newArr = createArr($arr, $newArr);
+for ($i=0; $i < 7; $i++) { 
+    
+
+print "\n-------------------------\n";
+print "newArr\n";
+print "\n-------------------------\n";
+
 
 print_r($newArr);
-
-function createArr(array $arr, array $newArr,int $int=0)
-{
-    for ($i = count($arr) - 1; $int!=0 ? $int:$i >= 0; $i--) {
-        
-        if (count($arr) == 2) { //配列要素が2つしか無いなら
-            $newArr[$arr[0]] = $arr[1];
-            break;
-        }
-        if (!array_key_exists($arr[0], $newArr)) {
-            $temp = [];
-            $temp[$arr[$i]] = $newArr;
-            $newArr = $temp;
-        } 
-        // else { //すでに作成済み項目がるなら別処理
-        //     $newArr= addVal($arr, $newArr, $i);
-        // break;
-        // }
-        if ($i == count($arr) - 3) {
-            $temp = [];
-            $temp[$arr[$i]] = array($arr[count($arr) - 2] => end($arr));
-            $newArr = $temp;
-        }
-    }
-    return $newArr;
-    
+foreach ($newArr as $key => &$value) {
+    $value=eachLoop($key,$value);
+    // $value＝1;
+}
+print "\n-------------------------\n";
+print "newArr\n";
+print "\n-------------------------\n";
+print_r($newArr);
 }
 
-function addVal(array $arr, array $newArr, int $i)
+
+
+function createArr(array $arr)
 {
-    for ($i=0;$i<count($arr) ;$i++) {
-        foreach ($newArr as $key => &$newVal) {
-            if($key!=$arr[$i]){
-                print $i.PHP_EOL;
-                
-                createArr($arr,$newVal,$i);
-            break 2;
-            }
-        }
+    $newArr=[];
+    if (count($arr) == 2) { //配列要素が2つしか無いなら
+        $newArr[$arr[0]] = $arr[1];
+        return $newArr;
     }
+    $tempExp = $arr[0];
+    unset($arr[0]);
+    $arr = array_values($arr); //インデックスを詰める
+    $temp[$tempExp] = implode(' ', $arr);
+    $newArr = $temp;
     return $newArr;
+}
+function eachLoop($key,$value){
+    if(gettype($value)=='string' && strpos($value,' ')!==false){//空白が含まれているなら
+        print "\n-------------------------\n";
+        print "通常\n";
+        print "\n-------------------------\n";
+
+        $temp=explode(' ',$value);
+        $temp=createArr($temp);
+        print_r($temp);
+        print_r($value);
+        
+        $value=$temp;
+        return $value;
+    }else{//配列なら深く巡ってみる
+        print "\n-------------------------\n";
+        print "めぐる\n";
+        print "\n-------------------------\n";
+        print "value\n";
+        print_r($value);
+        foreach ($value as $key2 => &$value2) {
+            print "value2\n";
+            print_r($value2);
+            $value2=eachLoop($key2,$value2);
+        }
+        
+    }
+    return $value;
+    
 }
