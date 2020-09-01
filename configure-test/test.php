@@ -23,7 +23,32 @@ print "\n-------------------------\n";
 print_r($newArr);
 }
 
+$str = 'service timestamps log datetime msec localtime show-timezone';
+$arr = explode(' ', $str);
+$newArr2 = [];
+$newArr2 = createArr($arr, $newArr2);
+for ($i=0; $i < 7; $i++) { 
+    
 
+print "\n-------------------------\n";
+print "newArr\n";
+print "\n-------------------------\n";
+
+
+print_r($newArr2);
+foreach ($newArr2 as $key => &$value) {
+    $value=eachLoop($key,$value);
+    // $value＝1;
+}
+print "\n-------------------------\n";
+print "newArr2\n";
+print "\n-------------------------\n";
+print_r($newArr2);
+}
+
+print_r($newArr);
+print_r($newArr2);
+print_r(array_merge($newArr,$newArr2));
 
 function createArr(array $arr)
 {
