@@ -13,8 +13,10 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::get('/', function () {
-    return view('welcome');
-});
+// Route::get('/', function () {
+//     return view('welcome');
+// });
 
-Route::get('make','ConfigController@index');
+Route::get('/','ConfigController@index');
+Route::post('/','ConfigController@change');
+Route::get('test','ConfigController@test');
