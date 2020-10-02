@@ -79,9 +79,19 @@ class ConfigController extends Controller
     }
     function test()
     {
+        // 一時的に
+        $path = '/Users/yokotsukahiroki/work/samurai/lesson/configure/storage/app/file/conf.cfg';
+        $configure = new Configure($path);
+        print_r($configure->interfaceSetting);
+
         // シートのタイトル用の名前
         $sheetTitle = 'sheetTitle';
         $fileName = 'filename';
+        // セル代入用変数
+        $columnIndex;
+        $row = 86;
+        $value;
+
         // テンプレートエクセルシートをコピー
         if (Storage::disk('local')->missing('excel/createdfile/' . $fileName . '.xlsx')) {
             Storage::disk('local')->copy('excel/template/template.xlsx', 'excel/createdfile/' . $fileName . '.xlsx');
@@ -91,14 +101,45 @@ class ConfigController extends Controller
 
         $reader = new Rxlsx();
         $spreadsheet = $reader->load($excelFilePath);
+        
         $sheet = $spreadsheet->getActiveSheet();
-        $sheet->setCellValue('A1', 'うわーーーーーーーー');
-        $sheet->setCellValue('A2', 'うわーーーーーーーー');
-        $sheet->setCellValue('A3', 'うわーーーーーーーー');
-        $sheet->setCellValue('A4', 'うわーーーーーーーー');
-        $sheet->setCellValue('A5', 'うわーーーーーーーー');
-        $sheet->setCellValue('A6', 'うわーーーーーーーー');
-        $sheetName=$spreadsheet->getSheetByName('sheet');
+        // ホスト名
+        $sheet->setCellValueByColumnAndRow(1, 3, $configure->hostname);
+        foreach ($configure->interfaceSetting as $interfaceName => $array) {
+
+            foreach ($array as $interfaceId => $array2) {
+
+                foreach ($array2 as $item => $value) {
+                    $sheet->setCellValueByColumnAndRow(1, $row, $interfaceName);
+                    $sheet->setCellValueByColumnAndRow(2, $row, $interfaceId);
+                    switch ($item) {
+                        case 'description':
+                            $sheet->setCellValueByColumnAndRow(3, $row, $value);
+                            break;
+                        case 'switchport':
+                            $sheet->setCellValueByColumnAndRow(12, $row, $value);
+                            break;
+                            // case 'encapsulation':
+                            //     $sheet->setCellValueByColumnAndRow(12, $row, $value);
+                            //     break;
+                        case 'speed':
+                            $sheet->setCellValueByColumnAndRow(4, $row, $value);
+                            break;
+                        case 'duplex':
+                            $sheet->setCellValueByColumnAndRow(5, $row, $value);
+                            break;
+                        case 'ip address':
+                            $sheet->setCellValueByColumnAndRow(6, $row, $value);
+                            break;
+                    }
+                    
+                }
+                $row++;
+            }
+        }
+
+        // タイトル設定
+        $sheetName = $spreadsheet->getSheetByName('sheet');
         $sheetName->setTitle($sheetTitle);
 
 
@@ -128,7 +169,7 @@ class Configure
         //実際の解析
         $this->getHostName();
         $this->createInterfaceSettingArray();
-        print_r($this->value);
+        // print_r($this->value);
     }
     private function configToArray()
     {
