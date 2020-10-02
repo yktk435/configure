@@ -57,20 +57,6 @@ class ConfigController extends Controller
         ob_end_clean();//これがないとDL後のファイルが破損してしまう  参考：https://www.366service.com/jp/qa/0348ce6a048c7c8c9dbabae1981a3ac3
         return (Storage::disk('local')->download($excelFilePath));
     }
-    private function filePathToArray($path)
-    {
-        $c = new Configure($path);
-    }
-    
-    private function excelTest()
-    {
-        $spreadsheet = new Spreadsheet();
-        $sheet = $spreadsheet->getActiveSheet();
-        $sheet->setCellValue('A1', 'Hello World !');
-
-        $writer = new Wxlsx($spreadsheet);
-        $writer->save('hello world.xlsx');
-    }
     private function toExcelFile(array $uploadedFilePaths): string
     {
 
@@ -126,7 +112,9 @@ class ConfigController extends Controller
                                     $sheet->setCellValueByColumnAndRow(5, $row, $value);
                                     break;
                                 case 'ip address':
-                                    $sheet->setCellValueByColumnAndRow(6, $row, $value);
+                                    
+                                    $sheet->setCellValueByColumnAndRow(6, $row, $value[0]);//ip addredd
+                                    $sheet->setCellValueByColumnAndRow(7, $row, $value[1]);//mask
                                     break;
                             }
                         }
@@ -142,6 +130,16 @@ class ConfigController extends Controller
         $writer->save('/Users/yokotsukahiroki/work/samurai/lesson/configure/storage/app/excel/createdfile/changedfile.xlsx');
         // 作成したエクセルファイルのパスを返す
         return 'excel/createdfile/changedfile.xlsx';
+    }
+    function test(){
+        $c=new Configure('/Users/yokotsukahiroki/Downloads/config/conf.cfg');
+        foreach ($c->interfaceSetting as $key => $value) {
+            foreach ($value as $key2 => $value2) {
+                foreach ($value2 as $key3 => $value3) {
+                    print_r($value3);
+                }
+            }
+        }
     }
 }
 
@@ -213,7 +211,12 @@ class Configure
                             $value['description'] = $match[1];
                             unset($value[$key2]);
                         } else if (preg_match('/ip address\s(.*)/', $val, $match)) {
-                            $value['ip address'] = $match[1];
+                            if(preg_match('/(.*)\s(.*)/', $match[1], $match)){
+                                unset($match[0]);
+                                $match=array_values($match);
+                                $value['ip address'] = $match;
+                            }
+                            
                             unset($value[$key2]);
                         } else if (preg_match('/no\s(.*)/', $val, $match)) {
                             $value['no'][] = $match[1];
