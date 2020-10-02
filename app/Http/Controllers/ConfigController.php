@@ -53,21 +53,15 @@ class ConfigController extends Controller
         // 複数のコンフィグファイルを変換して1つのエクセルに変換して、そのファイルのパスを返す
         $excelFilePath = $this->toExcelFile($uploadedFilePaths);
 
-        // var_dump(Storage::disk('local')->files('file'));
-        // Storage::disk('local')->delete(['file.jpg', 'file2.jpg']);
         exec("rm /Users/yokotsukahiroki/work/samurai/lesson/configure/storage/app/file/*");
-        
+        ob_end_clean();//これがないとDL後のファイルが破損してしまう  参考：https://www.366service.com/jp/qa/0348ce6a048c7c8c9dbabae1981a3ac3
         return (Storage::disk('local')->download($excelFilePath));
     }
     private function filePathToArray($path)
     {
         $c = new Configure($path);
     }
-    private function toExcelFile(array $uploadedFilePaths): string
-    {
-
-        return $this->test($uploadedFilePaths);
-    }
+    
     private function excelTest()
     {
         $spreadsheet = new Spreadsheet();
@@ -77,7 +71,7 @@ class ConfigController extends Controller
         $writer = new Wxlsx($spreadsheet);
         $writer->save('hello world.xlsx');
     }
-    function test(array $uploadedFilePaths)
+    private function toExcelFile(array $uploadedFilePaths): string
     {
 
         // 書き込み用ワークブック
@@ -139,13 +133,6 @@ class ConfigController extends Controller
                         $row++;
                     }
                 }
-
-                // タイトル設定
-                // $sheetName = $spreadsheet->getSheetByName('sheet');
-
-                // $writer = new Wxlsx($spreadsheet);
-                // $writer->save('/Users/yokotsukahiroki/work/samurai/lesson/configure/storage/app/excel/createdfile/changedfile.xlsx');
-                // exit;
             }
         }
         $spreadsheet->removeSheetByIndex(0);
@@ -154,7 +141,6 @@ class ConfigController extends Controller
         $writer = new Wxlsx($spreadsheet);
         $writer->save('/Users/yokotsukahiroki/work/samurai/lesson/configure/storage/app/excel/createdfile/changedfile.xlsx');
         // 作成したエクセルファイルのパスを返す
-
         return 'excel/createdfile/changedfile.xlsx';
     }
 }
@@ -209,6 +195,9 @@ class Configure
     }
     private function createBaseSettingArray()
     {
+    }
+    private function extractIpAddress(){
+        $this->interfaceSetting;
     }
     private function createInterfaceSettingArray()
     {
