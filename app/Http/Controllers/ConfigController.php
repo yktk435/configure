@@ -26,33 +26,38 @@ class ConfigController extends Controller
         return view('configure.index', $items);
     }
     // ダウンロードさせる
-    private function change(Request $request)
+    function change(Request $request)
     {
         $files = $request->file(); //アップロードされたファイルを変数に代入
 
         foreach ($files as $file) {
-            //     $ext=$request->file('file')->getClientOriginalExtension(); //拡張子を取得
 
+            $ext = $file->getClientOriginalExtension(); //拡張子を取得
             //ファイルのオリジナルファイル名を取得
-            $name = $file->getClientOriginalName();
+            $name = basename($file->getClientOriginalName(), "." . $ext);
+
 
             //アップロードされたファイルが storage/file になかったら保存
-            if (Storage::disk('local')->missing('file/' . $name)) {
+            if (Storage::disk('local')->missing('file/' . $name . "." . $ext)) {
                 print "保存";
 
                 //保存  strage/app/file に保存される
-                $file->storeAs('file', $name);
+                $file->storeAs('file', $name . "." . $ext);
             } else {
                 print "保存済み";
             }
             //保存したファイルのフルパスを取得
-            $uploadedFilePaths[] = Storage::disk('local')->path('file/' . $name);
+            $uploadedFilePaths[][$name] = Storage::disk('local')->path('file/' . $name . "." . $ext);
         }
 
         // 複数のコンフィグファイルを変換して1つのエクセルに変換して、そのファイルのパスを返す
         $excelFilePath = $this->toExcelFile($uploadedFilePaths);
 
-        return Storage::download($excelFilePath);
+        // var_dump(Storage::disk('local')->files('file'));
+        // Storage::disk('local')->delete(['file.jpg', 'file2.jpg']);
+        exec("rm /Users/yokotsukahiroki/work/samurai/lesson/configure/storage/app/file/*");
+        
+        return (Storage::disk('local')->download($excelFilePath));
     }
     private function filePathToArray($path)
     {
@@ -60,13 +65,8 @@ class ConfigController extends Controller
     }
     private function toExcelFile(array $uploadedFilePaths): string
     {
-        //変換後のエクセルファイルのパス
-        $excelFilePath = '';
 
-        foreach ($uploadedFilePaths as $path) {
-            $config = new Configure($path);
-        }
-        return $excelFilePath;
+        return $this->test($uploadedFilePaths);
     }
     private function excelTest()
     {
@@ -77,79 +77,85 @@ class ConfigController extends Controller
         $writer = new Wxlsx($spreadsheet);
         $writer->save('hello world.xlsx');
     }
-    function test()
+    function test(array $uploadedFilePaths)
     {
-        // 一時的に
-        $path = '/Users/yokotsukahiroki/work/samurai/lesson/configure/storage/app/file/conf.cfg';
-        $configure = new Configure($path);
-        print_r($configure->interfaceSetting);
 
-        // シートのタイトル用の名前
-        $sheetTitle = 'sheetTitle';
-        $fileName = 'filename';
-        // セル代入用変数
-        $columnIndex;
-        $row = 86;
-        $value;
+        // 書き込み用ワークブック
+        $spreadsheet = new Spreadsheet();
 
-        // テンプレートエクセルシートをコピー
-        if (Storage::disk('local')->missing('excel/createdfile/' . $fileName . '.xlsx')) {
-            Storage::disk('local')->copy('excel/template/template.xlsx', 'excel/createdfile/' . $fileName . '.xlsx');
-        }
 
-        $excelFilePath = Storage::disk('local')->path('excel/createdfile/' . $fileName . '.xlsx');
-
-        $reader = new Rxlsx();
-        $spreadsheet = $reader->load($excelFilePath);
+        foreach ($uploadedFilePaths as $key => $value) {
+            
+            foreach ($value as $fileName => $filePath) {
+                // テンプレートシート関連
+                $templeteExcelFilePath = Storage::disk('local')->path('excel/template/template.xlsx');
+                $reader = new Rxlsx();
+                // テンプレれ読み込み
+                $templeteSpreadsheet = $reader->load($templeteExcelFilePath);
+                // テンプレートシート関連 終わり
         
-        $sheet = $spreadsheet->getActiveSheet();
-        // ホスト名
-        $sheet->setCellValueByColumnAndRow(1, 3, $configure->hostname);
-        foreach ($configure->interfaceSetting as $interfaceName => $array) {
+                $configure = new Configure($filePath);
 
-            foreach ($array as $interfaceId => $array2) {
+                // セル代入用変数
+                $columnIndex;
+                $row = 86;
+                $value;
 
-                foreach ($array2 as $item => $value) {
-                    $sheet->setCellValueByColumnAndRow(1, $row, $interfaceName);
-                    $sheet->setCellValueByColumnAndRow(2, $row, $interfaceId);
-                    switch ($item) {
-                        case 'description':
-                            $sheet->setCellValueByColumnAndRow(3, $row, $value);
-                            break;
-                        case 'switchport':
-                            $sheet->setCellValueByColumnAndRow(12, $row, $value);
-                            break;
-                            // case 'encapsulation':
-                            //     $sheet->setCellValueByColumnAndRow(12, $row, $value);
-                            //     break;
-                        case 'speed':
-                            $sheet->setCellValueByColumnAndRow(4, $row, $value);
-                            break;
-                        case 'duplex':
-                            $sheet->setCellValueByColumnAndRow(5, $row, $value);
-                            break;
-                        case 'ip address':
-                            $sheet->setCellValueByColumnAndRow(6, $row, $value);
-                            break;
+                $clonedWorksheet = clone $templeteSpreadsheet->getSheetByName('sheet');
+                $spreadsheet->addExternalSheet($clonedWorksheet);
+                $sheet = $spreadsheet->getSheetByName('sheet');
+                $sheet->setTitle($configure->hostname);
+                
+                // ホスト名
+                $sheet->setCellValueByColumnAndRow(1, 3, $configure->hostname);
+                foreach ($configure->interfaceSetting as $interfaceName => $array) {
+
+                    foreach ($array as $interfaceId => $array2) {
+
+                        foreach ($array2 as $item => $value) {
+                            $sheet->setCellValueByColumnAndRow(1, $row, $interfaceName);
+                            $sheet->setCellValueByColumnAndRow(2, $row, $interfaceId);
+                            switch ($item) {
+                                case 'description':
+                                    $sheet->setCellValueByColumnAndRow(3, $row, $value);
+                                    break;
+                                case 'switchport':
+                                    $sheet->setCellValueByColumnAndRow(12, $row, $value);
+                                    break;
+                                    // case 'encapsulation':
+                                    //     $sheet->setCellValueByColumnAndRow(12, $row, $value);
+                                    //     break;
+                                case 'speed':
+                                    $sheet->setCellValueByColumnAndRow(4, $row, $value);
+                                    break;
+                                case 'duplex':
+                                    $sheet->setCellValueByColumnAndRow(5, $row, $value);
+                                    break;
+                                case 'ip address':
+                                    $sheet->setCellValueByColumnAndRow(6, $row, $value);
+                                    break;
+                            }
+                        }
+                        $row++;
                     }
-                    
                 }
-                $row++;
+
+                // タイトル設定
+                // $sheetName = $spreadsheet->getSheetByName('sheet');
+
+                // $writer = new Wxlsx($spreadsheet);
+                // $writer->save('/Users/yokotsukahiroki/work/samurai/lesson/configure/storage/app/excel/createdfile/changedfile.xlsx');
+                // exit;
             }
         }
-
-        // タイトル設定
-        $sheetName = $spreadsheet->getSheetByName('sheet');
-        $sheetName->setTitle($sheetTitle);
-
-
+        $spreadsheet->removeSheetByIndex(0);
 
         //保存
         $writer = new Wxlsx($spreadsheet);
-        $writer->save($fileName . '.xlsx');
+        $writer->save('/Users/yokotsukahiroki/work/samurai/lesson/configure/storage/app/excel/createdfile/changedfile.xlsx');
         // 作成したエクセルファイルのパスを返す
 
-        print Storage::disk('public')->path($fileName . '.xlsx');
+        return 'excel/createdfile/changedfile.xlsx';
     }
 }
 
